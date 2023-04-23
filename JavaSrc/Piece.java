@@ -35,15 +35,44 @@ public abstract class Piece implements Moveable{
 	return(isRed() == p.isRed());
     }
 
-    // TODO: return true if the piece has already crossed the river, false otherwise
+    // return true if the piece has already crossed the river, false otherwise
     public boolean riverCrossed(){
-	// ...
-	return false;
+        if (this.red == true){  // red
+            if (this.y <= 4){
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        else {
+            if (this.y >= 5){   // black
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
     }
 
-    // TODO: return true if it is in its corresponding palace.
+    // return true if it is in its corresponding palace.
     public boolean atPalace(){
-	return false;
+        if (this.red == true){  // red
+            if ((this.y >= 7 && this.y <= 9) && (this.x >= 3 && this.x <= 5)){
+                return true;
+            } 
+            else {
+                return false;
+            }
+        }
+        else {  // black
+            if ((this.y >= 0 && this.y <= 2) && (this.x >= 3 && this.x <= 5)){
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
     }
 
 }
