@@ -80,9 +80,10 @@ public class ChessBoard{
     // TODO: return a piece at the specified position
     public Piece getPieceAt(int x, int y){
 	// this piece is initialised to null 
-	Piece p = null;
+		Piece p = null;
+		
 	// ... 
-	return p;
+		return p;
     }
     
     // TODO: find out all the pieces on the current chess board
