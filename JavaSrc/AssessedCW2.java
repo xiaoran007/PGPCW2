@@ -16,33 +16,35 @@ import java.io.*;
 public class AssessedCW2{
     // the main method
     public static void main(String[] args){
-	char[][] board = readFromFile("Chess.txt");
+		char[][] board = readFromFile("Chess.txt");
 
-	ChessBoard cb = new ChessBoard(board);
-	cb.printBoard();
+		ChessBoard cb = new ChessBoard(board);
+		cb.printBoard();
+		// boolean flag = cb.checkMate();
+		// System.out.println(flag);
 	
     }
 
     // read the first line from a file
     private static char[][] readFromFile(String path){
 	// 9 vertical lines and 10 horizontal lines
-	char[][] output = new char[9][10];
+		char[][] output = new char[9][10];
 	// exception handling here
-	int y = 0;
-	try(BufferedReader br = new BufferedReader(new FileReader(path))){
-	    while(y < 10){
-		String line = br.readLine();
-		int x = 0;
-		while(x < 9){
-		    output[x][y] = line.charAt(x);
-		    x++;
+		int y = 0;
+		try(BufferedReader br = new BufferedReader(new FileReader(path))){
+	    	while(y < 10){
+				String line = br.readLine();
+				int x = 0;
+				while(x < 9){
+		    		output[x][y] = line.charAt(x);
+		    		x++;
+				}
+			y++;
+	    	}
+		}catch(IOException e){
+	    	System.out.println("An IOException happens while reading from a file: " + path);
+	    	return null;
 		}
-		y++;
-	    }
-	}catch(IOException e){
-	    System.out.println("An IOException happens while reading from a file: " + path);
-	    return null;
-	}
 	return output;
     }
 }

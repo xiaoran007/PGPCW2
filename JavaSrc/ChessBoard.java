@@ -77,25 +77,202 @@ public class ChessBoard{
 	return true;
     }
 
-    // TODO: return a piece at the specified position
+    // return a piece at the specified position
     public Piece getPieceAt(int x, int y){
 	// this piece is initialised to null 
 		Piece p = null;
-		
-	// ... 
+		switch (board[x][y]) {
+			case '.':
+				break;
+			case 'g':
+				p = new General(x, y, false);
+				break;
+			case 'a':
+				p = new Guard(x, y, false);
+				break;
+			case 'e':
+				p = new Elephant(x, y, false);
+				break;
+			case 'h':
+				p = new Horse(x, y, false);
+				break;
+			case 'r':
+				p = new Chariot(x, y, false);
+				break;
+			case 'c':
+				p = new Cannon(x, y, false);
+				break;
+			case 's':
+				p = new Soldier(x, y, false);
+				break;
+			case 'G':
+				p = new General(x, y, true);
+				break;
+			case 'A':
+				p = new Guard(x, y, true);
+				break;
+			case 'E':
+				p = new Elephant(x, y, true);
+				break;
+			case 'H':
+				p = new Horse(x, y, true);
+				break;
+			case 'R':
+				p = new Chariot(x, y, true);
+				break;
+			case 'C':
+				p = new Cannon(x, y, true);
+				break;
+			case 'S':
+				p = new Soldier(x, y, true);
+				break;
+			default:
+				break;
+		}
 		return p;
     }
     
-    // TODO: find out all the pieces on the current chess board
+    // find out all the pieces on the current chess board
     public void findAllPieces(){
-	// ...
+		for(int i = 0; i < ChessBoard.HEIGHT; i++){
+			for(int j = 0; j < ChessBoard.WIDTH; j++){
+				Piece p = null;
+				p = getPieceAt(j, i);
+				if (p == null){
+					continue;
+				}
+				else if (p.isRed()){
+					redPieces.add(p);
+				}
+				else if (!p.isRed()){
+					blackPieces.add(p);
+				}
+				else {
+					continue;
+				}
+			}
+		}
     }
 
 
 
-    // TODO: return ture, if the black player was checked
+    // return ture, if the black player was checked
     public boolean checkMate(){
-	// ...
+		int general_x = -1;
+		int general_y = -1;
+		Piece general = null;
+		for (int i=0; i<blackPieces.size(); i++){
+			Piece p = blackPieces.get(i);
+			if (p.getClass().equals(General.class)){
+				general = blackPieces.get(i);
+				general_x = general.getX();
+				general_y = general.getY();
+				break;
+			}
+		}
+		for (int i=0; i<redPieces.size(); i++){
+			Piece p = redPieces.get(i);
+			if (p.getClass().equals(Chariot.class)){
+				if (p.getX() == general_x){
+					if (unoccupied(p.getX(), general_x, p.getY(), general_y)){
+						return true;
+					}
+				}
+				else if (p.getY() == general_y){
+					if (unoccupied(p.getX(), general_x, p.getY(), general_y)){
+						return true;
+					}
+				}
+			}
+			else if (p.getClass().equals(Cannon.class)){
+				if (p.getX() == general_x){
+					int min_y = 0;
+					int max_y = 0;
+					if (general_y >= p.getY()){
+						max_y = general_y;
+						min_y = p.getY();
+					}
+					Piece mid = null;
+					for (int j=min_y+1; j<max_y; j++){
+						mid = getPieceAt(general_x, j);
+						if (mid != null){
+							if (unoccupied(general_x, mid.getX(), general_y, mid.getY()) && unoccupied(p.getX(), mid.getX(), p.getY(), mid.getY())){
+								return true;
+							}
+						}
+					}
+				}
+				else if (p.getY() == general_y){
+					int min_x = 0;
+					int max_x = 0;
+					if (general_x >= p.getX()){
+						max_x = general_x;
+						min_x = p.getX();
+					}
+					Piece mid = null;
+					for (int j=min_x+1; j<max_x; j++){
+						mid = getPieceAt(j, general_y);
+						if (mid != null){
+							if (unoccupied(general_x, mid.getX(), general_x, mid.getY()) && unoccupied(p.getX(), mid.getX(), p.getY(), mid.getY())){
+								return true;
+							}
+						}
+					}
+				}
+			}
+			else if (p.getClass().equals(Horse.class)){
+				int h_x = p.getX();
+				int h_y = p.getY();
+				if (h_x+1 == general_x && h_y-2 == general_y){
+					HMove move = new HMove(1, -2);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+				else if (h_x-1 == general_x && h_y-2 == general_y){
+					HMove move = new HMove(-1, -2);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+				else if (h_x+1 == general_x && h_y+2 == general_y){
+					HMove move = new HMove(1, 2);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+				else if (h_x-1 == general_x && h_y+2 == general_y){
+					HMove move = new HMove(-1, 2);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+				else if (h_x-2 == general_x && h_y-1 == general_y){
+					HMove move = new HMove(-2, -1);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+				else if (h_x-2 == general_x && h_y+1 == general_y){
+					HMove move = new HMove(-2, 1);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+				else if (h_x+2 == general_x && h_y-1 == general_y){
+					HMove move = new HMove(2, -1);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+				else if (h_x+2 == general_x && h_y+1 == general_y){
+					HMove move = new HMove(2, 1);
+					if (move.canMove(p, this)){
+						return true;
+					}
+				}
+			}
+		}
 	return false;
     }
 
