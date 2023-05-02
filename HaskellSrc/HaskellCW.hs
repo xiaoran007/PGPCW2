@@ -1,4 +1,9 @@
 -- Represent different types of pieces
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use guards" #-}
+{-# HLINT ignore "Redundant if" #-}
+{-# HLINT ignore "Redundant bracket" #-}
+{-# HLINT ignore "Use list comprehension" #-}
 data PieceType = General | Guard | Elephant | Horse | Chariot | 
                  Cannon | Soldier deriving (Eq,Show)
 data PieceColour = Black | Red deriving (Eq,Show)
@@ -226,22 +231,42 @@ crossRiver ((x1, _), (x2, _))
 
 
 cannonJump :: Board -> Pos -> (Int, Int) -> [Pos]
-cannonJump bd (x, y) (dir_a, dir_b)
-  | x == 1  = []
-  | otherwise = []
+cannonJump bd (x, y) (dir_a, dir_b) = 
+  if (dir_a == -1 && dir_b == 0 && (firstPieci bd (x, y) (-1, 0)) /= (-1, -1)) 
+    then if (firstPieci bd (firstPieci bd (x, y) (-1, 0)) (-1, 0) /= (-1, -1)) 
+      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (-1, 0)) (-1, 0))) 
+        then [(firstPieci bd (firstPieci bd (x, y) (-1, 0)) (-1, 0))] 
+        else []
+      else []
+  else if (dir_a == 1 && dir_b == 0 && (firstPieci bd (x, y) (1, 0)) /= (-1, -1))
+    then if (firstPieci bd (firstPieci bd (x, y) (1, 0)) (1, 0) /= (-1, -1))
+      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (1, 0)) (1, 0))) 
+        then [(firstPieci bd (firstPieci bd (x, y) (1, 0)) (1, 0))]
+        else []
+      else []
+  else if (dir_a == 0 && dir_b == -1 && (firstPieci bd (x, y) (0, -1)) /= (-1, -1))
+    then if (firstPieci bd (firstPieci bd (x, y) (0, -1)) (0, -1) /= (-1, -1))
+      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (0, -1)) (0, -1))) 
+        then [(firstPieci bd (firstPieci bd (x, y) (0, -1)) (0, -1))]
+        else []
+      else []
+  else if (dir_a == 0 && dir_b == 1 && (firstPieci bd (x, y) (0, 1)) /= (-1, -1))
+    then if (firstPieci bd (firstPieci bd (x, y) (0, 1)) (0, 1) /= (-1, -1))
+      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (0, 1)) (0, 1))) 
+        then [(firstPieci bd (firstPieci bd (x, y) (0, 1)) (0, 1))]
+        else []
+      else []
+  else []
 
 
 -- find first piece in given dir.
 firstPieci :: Board -> Pos -> (Int, Int) -> (Int, Int)
-firstPieci bd (x, y) (dir_a, dir_b)
-  | (dir_a == -1 && dir_b == 0) && not (isEmpty bd (x-1, y)) = (x-1, y)
-  | (dir_a == -1 && dir_b == 0) && isEmpty bd (x-1, y) = firstPieci bd (x-1, y) (dir_a, dir_b)
-  | (dir_a == 1 && dir_b == 0) && not (isEmpty bd (x+1, y)) = (x+1, y)
-  | (dir_a == 1 && dir_b == 0) && isEmpty bd (x+1, y) = firstPieci bd (x+1, y) (dir_a, dir_b)
-  | (dir_a == 0 && dir_b == -1) && not (isEmpty bd (x, y-1)) = (x, y-1)
-  | (dir_a == 0 && dir_b == -1) && isEmpty bd (x, y-1) = firstPieci bd (x, y-1) (dir_a, dir_b)
-  | (dir_a == 0 && dir_b == 1) && not (isEmpty bd (x, y+1)) = (x, y+1)
-  | (dir_a == 0 && dir_b == 1) && isEmpty bd (x, y+1) = firstPieci bd (x, y+1) (dir_a, dir_b)
-  | otherwise = (x, y)
+firstPieci bd (x, y) (dir_a, dir_b) = 
+  if (dir_a == -1 && dir_b == 0 && isValidPos (x-1, y)) then (if not (isEmpty bd (x-1, y)) then (x-1, y) else firstPieci bd (x-1, y) (dir_a, dir_b))
+  else if (dir_a == 1 && dir_b == 0 && isValidPos (x+1, y)) then (if not (isEmpty bd (x+1, y)) then (x+1, y) else firstPieci bd (x+1, y) (dir_a, dir_b))
+  else if (dir_a == 0 && dir_b == -1 && isValidPos (x, y-1)) then (if not (isEmpty bd (x, y-1)) then (x, y-1) else firstPieci bd (x, y-1) (dir_a, dir_b))
+  else if (dir_a == 0 && dir_b == 1 && isValidPos (x, y+1)) then (if not (isEmpty bd (x, y+1)) then (x, y+1) else firstPieci bd (x, y+1) (dir_a, dir_b))
+  else (-1, -1)
+
 
 
