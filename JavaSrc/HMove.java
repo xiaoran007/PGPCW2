@@ -20,7 +20,7 @@ public class HMove extends Move {
             return false;
         }
 
-        Piece dp = board.getPieceAt(dx, dy);
+        
         // up
 	    if (getY() == -2){
             if (getX() == 1){ // up and right

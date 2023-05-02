@@ -260,13 +260,19 @@ checkMove b Horse ((x1, y1), (x2, y2)) =
     else 
       False 
   else
-    False 
-
-
-
-
-
-checkMove _ _ _ = True -- no further special check needed, as default
+    False
+checkMove b Cannon ((x1, y1), (x2, y2)) =
+  if (isValidPos (x2, y2)) then
+    if (isEmpty b (x2, y2)) then
+      True 
+    else if (cannonCanJump b (x1, y1) (x2, y2) ) then
+      True 
+    else
+      False 
+  else
+    False  
+checkMove _ _ _ = True 
+--checkMove _ _ _ = True -- no further special check needed, as default
 
 -- assume two positions are occupied and see if they are same colour
 hasSameColour :: Board -> Pos -> Pos -> Bool
@@ -427,7 +433,6 @@ findGeneral b pcl =
 
 
 
-
 checkPosGeneral :: Board -> Pos -> Bool
 checkPosGeneral b (x, y) = 
   if (not (isEmpty b (x, y))) then
@@ -439,3 +444,65 @@ checkPosGeneral b (x, y) =
 
 checkPieceType :: Piece -> PieceType
 checkPieceType (pcl, pty) = pty
+
+getColour :: Piece -> PieceColour
+getColour (pcl, pty) = pcl
+
+generalBoard :: [(Int, Int)]
+generalBoard = [(x, y) | x <- [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], y <- [0, 1, 2, 3, 4, 5, 6, 7, 8]]
+
+findAllCheck :: Board -> PieceColour -> Pos -> Bool 
+findAllCheck b pcl (x, y) =
+  if (isEmpty b (x, y)) then
+    False 
+  else 
+    if (getColour (getPiece b (x, y)) == pcl) then
+      True 
+    else 
+      False 
+
+findAllPieces :: Board -> PieceColour -> [Pos]
+findAllPieces b pcl = filter (findAllCheck b pcl) (generalBoard)
+
+canCapture :: Board -> PieceColour -> Pos -> [Pos]
+canCapture b pcl (x, y) = filter (checkCaptureMove b (x, y)) (findAllPieces b pcl)
+
+checkCaptureMove :: Board -> Pos -> Pos -> Bool 
+checkCaptureMove b (x1, y1) (x, y) =
+  if (checkMove b (checkPieceType (getPiece b (x, y))) ((x, y), (x1, y1))) then
+    True 
+  else
+    False 
+
+cannonCanJump :: Board -> Pos -> Pos -> Bool 
+cannonCanJump b (x1, y1) (x2, y2) =
+  if (x1==x2 && y1>y2 && isValidPos (firstPiece b (x1, y1) (0, -1)) ) then -- left
+    if (checkEqual (x2, y2) (firstPiece b (firstPiece b (x1, y1) (0, -1) ) (0, -1)) ) then
+      True 
+    else 
+      False 
+  else if (x1==x2 && y1<y2 && isValidPos (firstPiece b (x1, y1) (0, 1))) then
+    if (checkEqual (x2, y2) (firstPiece b (firstPiece b (x1, y1) (0, 1)) (0, 1))) then
+      True 
+    else 
+      False 
+  else if (x1>x2 && y1==y2 && isValidPos (firstPiece b (x1, y1) (-1, 0))) then
+    if (checkEqual (x2, y2) (firstPiece b (firstPiece b (x1, y1) (-1, 0)) (-1, 0))) then
+      True 
+    else
+      False 
+  else if (x1<x2 && y1==y2 && isValidPos (firstPiece b (x1, y1) (1, 0))) then
+    if (checkEqual (x2, y2) (firstPiece b (firstPiece b (x1, y1) (1, 0)) (1, 0))) then
+      True 
+    else
+      False 
+  else
+    False   
+    
+
+checkEqual :: Pos -> Pos -> Bool 
+checkEqual (x1, y1) (x2, y2) = 
+  if (x1==x2 && y1==y2) then
+    True 
+  else
+    False 
