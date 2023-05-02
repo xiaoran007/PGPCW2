@@ -87,17 +87,17 @@ startBoard = addPieces emptyBoard
     initialPieces isLeft pcol =
       [ ((f 0, g 4),  (pcol, General)),
         ((f 0, g 3),  (pcol, Guard)),
-	    ((f 0, g 2),  (pcol, Elephant)),
-	    ((f 0, g 1),  (pcol, Horse)),
-	    ((f 0, g 0),  (pcol, Chariot)),
-	    ((f 2, g 1),  (pcol, Cannon)),
-	    ((f 3, g 0),  (pcol, Soldier)),
-	    ((f 3, g 2),  (pcol, Soldier)),
-        ((f 3, g 4),  (pcol, Soldier)) 		]
-	  where
+      ((f 0, g 2),  (pcol, Elephant)),
+      ((f 0, g 1),  (pcol, Horse)),
+      ((f 0, g 0),  (pcol, Chariot)),
+      ((f 2, g 1),  (pcol, Cannon)),
+      ((f 3, g 0),  (pcol, Soldier)),
+      ((f 3, g 2),  (pcol, Soldier)),
+        ((f 3, g 4),  (pcol, Soldier))     ]
+      where
         f x = if pcol==Black then x else 9-x
         g y = if isLeft then y else 8-y
-		
+    
 -- Read board position
 getPos :: Board -> Pos -> BoardPosition
 getPos b (x,y) = (b!!x)!!y
@@ -167,7 +167,7 @@ pathMove _  m = tail (pathMoveMain m)
     pathMoveMain ((x1,y1),(x2,y2))
       | x1==x2 && y1==y2 = []
       | otherwise = (x1,y1):
-	      (pathMoveMain ((x1+signum(x2-x1), y1+signum(y2-y1) ), (x2,y2) ) )
+        (pathMoveMain ((x1+signum(x2-x1), y1+signum(y2-y1) ), (x2,y2) ) )
  
 -- Check if a path is empty
 emptyPath :: Board -> PieceType -> Move -> Bool
@@ -181,7 +181,7 @@ checkMove _ _ _ = True -- no further special check needed, as default
 -- assume two positions are occupied and see if they are same colour
 hasSameColour :: Board -> Pos -> Pos -> Bool
 hasSameColour b pos1 pos2 = fst (getPiece b pos1) == fst (getPiece b pos2)
-	
+  
 -- A move is valid if
 -- (a) move is on board;
 -- (b) move is possible for the piece;
@@ -216,3 +216,32 @@ b7 = addPiece b6 (1,5) (Black, Guard)
 -- isCheckmate b5 Black -- should be False
 -- isCheckmate b6 Black -- should be False
 -- isCheckmate b7 Black -- should be True
+
+
+crossRiver :: Move -> Bool 
+crossRiver ((x1, _), (x2, _)) 
+  | (x1 >= 0 && x1 <= 4) && (x2 >= 5 && x2 <= 9) = True
+  | (x2 >= 0 && x2 <= 4) && (x1 >= 5 && x1 <= 9) = True 
+  | otherwise  = False 
+
+
+cannonJump :: Board -> Pos -> (Int, Int) -> [Pos]
+cannonJump bd (x, y) (dir_a, dir_b)
+  | x == 1  = []
+  | otherwise = []
+
+
+-- find first piece in given dir.
+firstPieci :: Board -> Pos -> (Int, Int) -> (Int, Int)
+firstPieci bd (x, y) (dir_a, dir_b)
+  | (dir_a == -1 && dir_b == 0) && not (isEmpty bd (x-1, y)) = (x-1, y)
+  | (dir_a == -1 && dir_b == 0) && isEmpty bd (x-1, y) = firstPieci bd (x-1, y) (dir_a, dir_b)
+  | (dir_a == 1 && dir_b == 0) && not (isEmpty bd (x+1, y)) = (x+1, y)
+  | (dir_a == 1 && dir_b == 0) && isEmpty bd (x+1, y) = firstPieci bd (x+1, y) (dir_a, dir_b)
+  | (dir_a == 0 && dir_b == -1) && not (isEmpty bd (x, y-1)) = (x, y-1)
+  | (dir_a == 0 && dir_b == -1) && isEmpty bd (x, y-1) = firstPieci bd (x, y-1) (dir_a, dir_b)
+  | (dir_a == 0 && dir_b == 1) && not (isEmpty bd (x, y+1)) = (x, y+1)
+  | (dir_a == 0 && dir_b == 1) && isEmpty bd (x, y+1) = firstPieci bd (x, y+1) (dir_a, dir_b)
+  | otherwise = (x, y)
+
+
