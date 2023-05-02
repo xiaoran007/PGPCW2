@@ -4,6 +4,8 @@
 {-# HLINT ignore "Redundant if" #-}
 {-# HLINT ignore "Redundant bracket" #-}
 {-# HLINT ignore "Use list comprehension" #-}
+{-# HLINT ignore "Use concatMap" #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 data PieceType = General | Guard | Elephant | Horse | Chariot | 
                  Cannon | Soldier deriving (Eq,Show)
 data PieceColour = Black | Red deriving (Eq,Show)
@@ -136,6 +138,9 @@ findGeneralOnVertical b y pcol
 orthogonalDir :: [(Int,Int)]
 orthogonalDir = [(-1,0), (1,0), (0,-1), (0,1)]
 
+diDir :: [(Int, Int)]
+diDir = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+
 -- All orthogonal moves from a given position, in one direction, 
 -- such that piece does not jump any other.
 orthogonalMoves :: Board -> Pos -> (Int,Int) -> Path
@@ -160,6 +165,15 @@ baseMoves _ (Red,Soldier) from
   | otherwise = map (addPos from) [(-1,0),(0,1),(0,-1)]
 baseMoves b (_,Chariot) from 
   = concat (map (orthogonalMoves b from) orthogonalDir )
+baseMoves b (pcol, Guard) from = 
+  map (addPos from) ([(-1, -1), (-1, 1), (1, -1), (1, 1)])
+baseMoves b (pcol, Elephant) from = 
+  map (addPos from) ([(-2, -2), (-2, 2), (2, -2), (2, 2)])
+baseMoves b (pcol, Horse) from = 
+  map (addPos from) ([(-1, 2), (-1, -2), (1, 2), (1, -2), (-2, -1), (-2, 1), (2, -1), (2, 1)])
+baseMoves b (pcol,Cannon) from 
+  = concat (map (orthogonalMoves b from) orthogonalDir ) ++ (cannonJump b from (0, 1)) ++ (cannonJump b from (0, -1)) ++ (cannonJump b from (-1, 0)) ++ (cannonJump b from (1, 0))
+
   
 -- Compute path of board positions for a given move, 
 -- excluding first and last positions.
@@ -181,6 +195,77 @@ emptyPath b pt m = all (isEmpty b) (pathMove pt m)
 -- check validity of moves, which is special for each piece type
 checkMove :: Board -> PieceType -> Move -> Bool
 checkMove b General  m = emptyPath b General m && isPalace (snd m)
+checkMove b Soldier ((x1, y1), (x2, y2)) =
+  if (crossRiver ((x1, y1), (x2, y2)) && isValidPos (x2, y2)) 
+    then if (isEmpty b (x2, y2))
+      then if (x1 == x2 && y1 - y2 == 1 || y1 == y2 && x2 - x1 == 1 || x1 == x2 && y2 - y1 == 1)
+        then True 
+        else False  
+    else if (hasSameColour b (x1, y1) (x2, y2))
+      then if (x1 == x2 && y1 - y2 == 1 || y1 == y2 && x2 - x1 == 1 || x1 == x2 && y2 - y1 == 1)
+        then True 
+        else False
+    else False 
+  else if not (crossRiver ((x1, y1), (x2, y2)) && isValidPos (x2, y2)) then
+    if (isEmpty b (x2, y2)) then
+      if (y1 == y2 && x2 - x1 == 1) then
+        True 
+      else 
+        False 
+    else if (hasSameColour b (x1, y1) (x2, y2)) then
+      if (y1 == y2 && x2 - x1 == 1) then
+        True 
+      else
+        False
+    else
+      False 
+  else
+    False 
+checkMove b Chariot ((x1, y1), (x2, y2)) = 
+  if (isValidPos (x2, y2)) then
+    if (isEmpty b (x2, y2)) then
+      True 
+    else if (hasSameColour b (x1, y1) (x2, y2)) then
+      True 
+    else 
+      False 
+  else
+    False 
+checkMove b Guard ((x1, y1), (x2, y2)) = 
+  if (isValidPos (x2, y2) && isPalace (x2, y2)) then
+    if (isEmpty b (x2, y2)) then 
+      True 
+    else if (hasSameColour b (x1, y1) (x2, y2)) then
+      True 
+    else
+      False 
+  else
+    False 
+checkMove b Elephant ((x1, y1), (x2, y2)) = 
+  if (isValidPos (x2, y2) && isEmpty b (findMidElephant b (x1, y1) (x2, y2))) then 
+    if (isEmpty b (x2, y2)) then
+      True 
+    else if (hasSameColour b (x1, y1) (x2, y2)) then
+      True 
+    else 
+      False 
+  else 
+    False 
+checkMove b Horse ((x1, y1), (x2, y2)) = 
+  if (isValidPos (x2, y2) && isEmpty b (findMidHorse b (x1, y1) (x2, y2))) then
+    if (isEmpty b (x2, y2)) then
+      True 
+    else if (hasSameColour b (x1, y1) (x2, y2)) then
+      True 
+    else 
+      False 
+  else
+    False 
+
+
+
+
+
 checkMove _ _ _ = True -- no further special check needed, as default
 
 -- assume two positions are occupied and see if they are same colour
@@ -232,41 +317,125 @@ crossRiver ((x1, _), (x2, _))
 
 cannonJump :: Board -> Pos -> (Int, Int) -> [Pos]
 cannonJump bd (x, y) (dir_a, dir_b) = 
-  if (dir_a == -1 && dir_b == 0 && (firstPieci bd (x, y) (-1, 0)) /= (-1, -1)) 
-    then if (firstPieci bd (firstPieci bd (x, y) (-1, 0)) (-1, 0) /= (-1, -1)) 
-      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (-1, 0)) (-1, 0))) 
-        then [(firstPieci bd (firstPieci bd (x, y) (-1, 0)) (-1, 0))] 
+  if (dir_a == -1 && dir_b == 0 && (firstPiece bd (x, y) (-1, 0)) /= (-1, -1)) 
+    then if (firstPiece bd (firstPiece bd (x, y) (-1, 0)) (-1, 0) /= (-1, -1)) 
+      then if not (hasSameColour bd (x, y) (firstPiece bd (firstPiece bd (x, y) (-1, 0)) (-1, 0))) 
+        then [(firstPiece bd (firstPiece bd (x, y) (-1, 0)) (-1, 0))] 
         else []
       else []
-  else if (dir_a == 1 && dir_b == 0 && (firstPieci bd (x, y) (1, 0)) /= (-1, -1))
-    then if (firstPieci bd (firstPieci bd (x, y) (1, 0)) (1, 0) /= (-1, -1))
-      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (1, 0)) (1, 0))) 
-        then [(firstPieci bd (firstPieci bd (x, y) (1, 0)) (1, 0))]
+  else if (dir_a == 1 && dir_b == 0 && (firstPiece bd (x, y) (1, 0)) /= (-1, -1))
+    then if (firstPiece bd (firstPiece bd (x, y) (1, 0)) (1, 0) /= (-1, -1))
+      then if not (hasSameColour bd (x, y) (firstPiece bd (firstPiece bd (x, y) (1, 0)) (1, 0))) 
+        then [(firstPiece bd (firstPiece bd (x, y) (1, 0)) (1, 0))]
         else []
       else []
-  else if (dir_a == 0 && dir_b == -1 && (firstPieci bd (x, y) (0, -1)) /= (-1, -1))
-    then if (firstPieci bd (firstPieci bd (x, y) (0, -1)) (0, -1) /= (-1, -1))
-      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (0, -1)) (0, -1))) 
-        then [(firstPieci bd (firstPieci bd (x, y) (0, -1)) (0, -1))]
+  else if (dir_a == 0 && dir_b == -1 && (firstPiece bd (x, y) (0, -1)) /= (-1, -1))
+    then if (firstPiece bd (firstPiece bd (x, y) (0, -1)) (0, -1) /= (-1, -1))
+      then if not (hasSameColour bd (x, y) (firstPiece bd (firstPiece bd (x, y) (0, -1)) (0, -1))) 
+        then [(firstPiece bd (firstPiece bd (x, y) (0, -1)) (0, -1))]
         else []
       else []
-  else if (dir_a == 0 && dir_b == 1 && (firstPieci bd (x, y) (0, 1)) /= (-1, -1))
-    then if (firstPieci bd (firstPieci bd (x, y) (0, 1)) (0, 1) /= (-1, -1))
-      then if not (hasSameColour bd (x, y) (firstPieci bd (firstPieci bd (x, y) (0, 1)) (0, 1))) 
-        then [(firstPieci bd (firstPieci bd (x, y) (0, 1)) (0, 1))]
+  else if (dir_a == 0 && dir_b == 1 && (firstPiece bd (x, y) (0, 1)) /= (-1, -1))
+    then if (firstPiece bd (firstPiece bd (x, y) (0, 1)) (0, 1) /= (-1, -1))
+      then if not (hasSameColour bd (x, y) (firstPiece bd (firstPiece bd (x, y) (0, 1)) (0, 1))) 
+        then [(firstPiece bd (firstPiece bd (x, y) (0, 1)) (0, 1))]
         else []
       else []
   else []
 
 
 -- find first piece in given dir.
-firstPieci :: Board -> Pos -> (Int, Int) -> (Int, Int)
-firstPieci bd (x, y) (dir_a, dir_b) = 
-  if (dir_a == -1 && dir_b == 0 && isValidPos (x-1, y)) then (if not (isEmpty bd (x-1, y)) then (x-1, y) else firstPieci bd (x-1, y) (dir_a, dir_b))
-  else if (dir_a == 1 && dir_b == 0 && isValidPos (x+1, y)) then (if not (isEmpty bd (x+1, y)) then (x+1, y) else firstPieci bd (x+1, y) (dir_a, dir_b))
-  else if (dir_a == 0 && dir_b == -1 && isValidPos (x, y-1)) then (if not (isEmpty bd (x, y-1)) then (x, y-1) else firstPieci bd (x, y-1) (dir_a, dir_b))
-  else if (dir_a == 0 && dir_b == 1 && isValidPos (x, y+1)) then (if not (isEmpty bd (x, y+1)) then (x, y+1) else firstPieci bd (x, y+1) (dir_a, dir_b))
+firstPiece :: Board -> Pos -> (Int, Int) -> (Int, Int)
+firstPiece bd (x, y) (dir_a, dir_b) = 
+  if (dir_a == -1 && dir_b == 0 && isValidPos (x-1, y)) then (if not (isEmpty bd (x-1, y)) then (x-1, y) else firstPiece bd (x-1, y) (dir_a, dir_b))
+  else if (dir_a == 1 && dir_b == 0 && isValidPos (x+1, y)) then (if not (isEmpty bd (x+1, y)) then (x+1, y) else firstPiece bd (x+1, y) (dir_a, dir_b))
+  else if (dir_a == 0 && dir_b == -1 && isValidPos (x, y-1)) then (if not (isEmpty bd (x, y-1)) then (x, y-1) else firstPiece bd (x, y-1) (dir_a, dir_b))
+  else if (dir_a == 0 && dir_b == 1 && isValidPos (x, y+1)) then (if not (isEmpty bd (x, y+1)) then (x, y+1) else firstPiece bd (x, y+1) (dir_a, dir_b))
   else (-1, -1)
 
 
+findMidElephant :: Board -> Pos -> Pos -> Pos
+findMidElephant bd (x1, y1) (x2, y2) = 
+  if (x1 - x2 > 0 && y1 - y2 > 0) then
+    (x1-1, y1-1)
+  else if (x1 - x2 > 0 && y1 - y2 < 0) then
+    (x1-1, y1+1)
+  else if (x1 - x2 < 0 && y1 - y2 > 0) then
+    (x1+1, y1-1)
+  else if (x1 - x2 < 0 && y1 - y2 < 0) then
+    (x1+1, y1+1)
+  else
+    (x1, y1)
 
+
+findMidHorse :: Board -> Pos -> Pos -> Pos
+findMidHorse bd (x1, y1) (x2, y2) = 
+  if (x1 - x2 == 2) then
+    (x1-1, y1)
+  else if (x1 - x2 == -2) then
+    (x1+1, y1)
+  else if (y1 - y2 == 2) then
+    (x1, y1-1)
+  else if (y1 - y2 == -2) then
+    (x1, y1+1)
+  else 
+    (x1, y1)
+
+-- red x: 7-9 y: 3-5 black x:0-2 y:3-5
+findGeneral :: Board -> PieceColour -> Pos
+findGeneral b pcl = 
+  if (pcl == Red) then 
+    if (checkPosGeneral b (7, 3)) then
+      (7, 3)
+    else if (checkPosGeneral b (7, 4)) then
+      (7, 4)
+    else if (checkPosGeneral b (7, 5)) then
+      (7, 5)
+    else if (checkPosGeneral b (8, 3)) then
+      (8, 3)
+    else if (checkPosGeneral b (8, 4)) then
+      (8, 4)
+    else if (checkPosGeneral b (8, 5)) then
+      (8, 5)
+    else if (checkPosGeneral b (9, 3)) then
+      (9, 3)
+    else if (checkPosGeneral b (9, 4)) then
+      (9, 4)
+    else if (checkPosGeneral b (9, 5)) then
+      (9, 5)
+    else (-1, -1)
+  else
+    if (checkPosGeneral b (0, 3)) then
+      (0, 3)
+    else if (checkPosGeneral b (0, 4)) then
+      (0, 4)
+    else if (checkPosGeneral b (0, 5)) then
+      (0, 5)
+    else if (checkPosGeneral b (1, 3)) then
+      (1, 3)
+    else if (checkPosGeneral b (1, 4)) then
+      (1, 4)
+    else if (checkPosGeneral b (1, 5)) then
+      (1, 5)
+    else if (checkPosGeneral b (2, 3)) then
+      (2, 3)
+    else if (checkPosGeneral b (2, 4)) then
+      (2, 4)
+    else if (checkPosGeneral b (2, 5)) then
+      (2, 5)
+    else (-1, -1)
+
+
+
+
+checkPosGeneral :: Board -> Pos -> Bool
+checkPosGeneral b (x, y) = 
+  if (not (isEmpty b (x, y))) then
+    if (checkPieceType (getPiece b (x, y)) == General) then
+      True 
+    else False 
+  else 
+    False 
+
+checkPieceType :: Piece -> PieceType
+checkPieceType (pcl, pty) = pty
