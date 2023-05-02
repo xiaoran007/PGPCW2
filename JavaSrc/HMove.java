@@ -8,9 +8,10 @@ public class HMove extends Move {
             return false;
         }
         // check value
-        if ((Math.abs(getX()) != 2 * Math.abs(getY())) || (2 * Math.abs(getX()) != Math.abs(getY()))){
-            return false;
-        }
+        //if ((Math.abs(getX()) != 2 * Math.abs(getY())) || (2 * Math.abs(getX()) != Math.abs(getY()))){
+        //    System.out.println("err");
+        //    return false;
+        //}
 
         int dx = p.getX() + getX();
         int dy = p.getY() + getY();

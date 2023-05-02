@@ -22,6 +22,13 @@ public class AssessedCW2{
 		cb.printBoard();
 		// boolean flag = cb.checkMate();
 		// System.out.println(flag);
+		cb.findAllPieces();
+		Piece horse = cb.blackPieces.get(1);
+		Move[] horse_move = horse.getMoves(cb);
+		for (Move i: horse_move){
+			System.out.println(i);
+		}
+		System.out.println(horse.getMoves(cb));
 	
     }
 
